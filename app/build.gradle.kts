@@ -36,12 +36,15 @@ dependencies {
     implementation(project(":core:common"))
 
     implementation(libs.kotlin.stdlib)
+    implementation(libs.core.ktx)
     implementation(libs.com.google.android.material.material)
 
     implementation(libs.compose.ui)
     implementation(libs.material3.window.size.clazz)
     implementation(libs.activity.compose)
 
+    testImplementation(libs.test.ext.junit)
+    testImplementation(libs.robolectric)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
 }

@@ -17,7 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -99,14 +99,9 @@ fun ProxyManagerScreenContent(
             MainLayout(
                 useVerticalLayout = useVerticalLayout,
                 buttonAndLabel = {
-                    ButtonLabelAndDropDown(
+                    ButtonAndLabel(
                         proxyEnabled = uiState is UiState.Connected,
-                        onToggleProxy = { onUserInteraction(UserInteraction.ToggleProxyClicked) },
-                        pastProxies = (uiState as? UiState.Disconnected)?.pastProxies
-                            ?: emptyList(),
-                        onProxySelected = {
-                            onUserInteraction(UserInteraction.ProxyFromDropDownSelected(it))
-                        }
+                        onToggleProxy = { onUserInteraction(UserInteraction.ToggleProxyClicked) }
                     )
                 },
                 textFields = {
@@ -182,14 +177,12 @@ fun MainLayout(
 }
 
 @Composable
-fun ButtonLabelAndDropDown(
+fun ButtonAndLabel(
     proxyEnabled: Boolean,
-    onToggleProxy: () -> Unit,
-    pastProxies: List<Proxy>,
-    onProxySelected: (Proxy) -> Unit
+    onToggleProxy: () -> Unit
 ) {
     ConstraintLayout {
-        val (button, label, dropdown) = createRefs()
+        val (button, label) = createRefs()
         ProxyToggleButton(
             proxyEnabled = proxyEnabled,
             onClick = onToggleProxy,
@@ -216,33 +209,22 @@ fun ButtonLabelAndDropDown(
                 .clearAndSetSemantics {},
             style = StatusLabelTextStyle
         )
-        if (proxyEnabled.not() && pastProxies.isNotEmpty()) {
-            Box(
-                modifier = Modifier.constrainAs(dropdown) {
-                    top.linkTo(label.top)
-                    bottom.linkTo(label.bottom)
-                    absoluteLeft.linkTo(label.absoluteRight)
-                }
-            ) {
-                PastProxiesIconAndDropdown(pastProxies, onProxySelected)
-            }
-        }
     }
 }
 
 @Composable
-private fun PastProxiesIconAndDropdown(
-    pastProxies: List<Proxy>,
-    onProxySelected: (Proxy) -> Unit
+private fun RecentAddressesDropdown(
+    recentAddresses: List<String>,
+    onAddressSelected: (String) -> Unit
 ) {
     var showDropDown by rememberSaveable { mutableStateOf(false) }
     IconButton(
         onClick = { showDropDown = showDropDown.not() },
-        modifier = Modifier.testTag(TestTags.PAST_PROXIES_DROPDOWN_BUTTON)
+        modifier = Modifier.testTag(TestTags.RECENT_IPS_DROPDOWN_BUTTON)
     ) {
         Icon(
-            imageVector = Icons.Default.ArrowDropDown,
-            contentDescription = stringResource(R.string.past_proxies_dropdown),
+            imageVector = Icons.Default.History,
+            contentDescription = stringResource(R.string.recent_ip_addresses_dropdown),
             tint = BluishGrey
         )
     }
@@ -250,11 +232,11 @@ private fun PastProxiesIconAndDropdown(
         expanded = showDropDown,
         onDismissRequest = { showDropDown = false }
     ) {
-        for (proxy in pastProxies) {
+        for (address in recentAddresses) {
             DropdownMenuItem(
-                text = { Text(text = proxy.toString()) },
+                text = { Text(text = address) },
                 onClick = {
-                    onProxySelected(proxy)
+                    onAddressSelected(address)
                     showDropDown = false
                 }
             )
@@ -268,13 +250,31 @@ private fun TextFields(
     onUserInteraction: (UserInteraction) -> Unit,
     onForceFocusExecuted: () -> Unit
 ) {
+    val recentAddresses = (uiState as? UiState.Disconnected)
+        ?.pastProxies
+        ?.map { it.address }
+        ?.distinct()
+        .orEmpty()
+
     ProxyToggleTextField(
         label = stringResource(R.string.hint_ip_address),
         state = uiState.addressState,
         onTextChanged = { onUserInteraction(UserInteraction.AddressChanged(it)) },
         enabled = uiState is UiState.Disconnected,
         keyboardOptions = getNumKeyboardOptions(ImeAction.Next),
-        onForceFocusExecuted = onForceFocusExecuted
+        onForceFocusExecuted = onForceFocusExecuted,
+        trailingContent = if (uiState is UiState.Disconnected && recentAddresses.isNotEmpty()) {
+            {
+                RecentAddressesDropdown(
+                    recentAddresses = recentAddresses,
+                    onAddressSelected = {
+                        onUserInteraction(UserInteraction.RecentAddressSelected(it))
+                    }
+                )
+            }
+        } else {
+            null
+        }
     )
     Spacer(Modifier.height(dimensionResource(R.dimen.default_margin)))
     ProxyToggleTextField(
@@ -283,7 +283,8 @@ private fun TextFields(
         onTextChanged = { onUserInteraction(UserInteraction.PortChanged(it)) },
         enabled = uiState is UiState.Disconnected,
         keyboardOptions = getNumKeyboardOptions(ImeAction.Done),
-        onForceFocusExecuted = onForceFocusExecuted
+        onForceFocusExecuted = onForceFocusExecuted,
+        trailingContent = null
     )
 }
 
@@ -297,6 +298,7 @@ private fun getNumKeyboardOptions(imeAction: ImeAction): KeyboardOptions {
 
 private val PREVIEW_PAST_PROXIES = listOf(
     Proxy("192.168.1.1", "8080"),
+    Proxy("192.168.1.1", "8081"),
     Proxy("10.0.1.1", "8080")
 )
 

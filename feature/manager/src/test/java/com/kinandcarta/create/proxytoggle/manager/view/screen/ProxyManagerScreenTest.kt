@@ -2,9 +2,12 @@ package com.kinandcarta.create.proxytoggle.manager.view.screen
 
 import android.os.Build
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -147,34 +150,37 @@ class ProxyManagerScreenTest {
     }
 
     @Test
-    fun `select proxy from dropDown - WHEN proxy selected, THEN viewModel's ProxyFromDropDownSelected called`() {
+    fun `select recent IP from dropDown - WHEN address selected THEN viewModel gets RecentAddressSelected`() {
         val pastProxies = (1..3).map {
             Proxy(it.toString(), it.toString())
         }
+        val duplicateAddress = Proxy("1", "99")
         val proxyToSelect = pastProxies[1]
 
-        launchComposable(pastProxies = pastProxies)
+        launchComposable(pastProxies = pastProxies + duplicateAddress)
 
-        composeRule.onNodeWithTag(TestTags.PAST_PROXIES_DROPDOWN_BUTTON)
+        composeRule.onNodeWithTag(TestTags.RECENT_IPS_DROPDOWN_BUTTON)
             .performScrollTo()
             .performClick()
 
-        pastProxies.forEach {
-            composeRule.onNodeWithText(it.toString())
+        pastProxies.map { it.address }.forEach {
+            composeRule.onNodeWithText(it)
                 .assertIsDisplayed()
         }
+        composeRule.onAllNodesWithText(duplicateAddress.address)
+            .assertCountEquals(1)
 
-        composeRule.onNodeWithText(proxyToSelect.toString())
+        composeRule.onNodeWithText(proxyToSelect.address)
             .performClick()
 
-        pastProxies.forEach {
-            composeRule.onNodeWithText(it.toString())
+        pastProxies.map { it.address }.forEach {
+            composeRule.onNodeWithText(it)
                 .assertDoesNotExist()
         }
 
         verify {
             mockViewModel.onUserInteraction(
-                ProxyManagerViewModel.UserInteraction.ProxyFromDropDownSelected(proxyToSelect)
+                ProxyManagerViewModel.UserInteraction.RecentAddressSelected(proxyToSelect.address)
             )
         }
     }

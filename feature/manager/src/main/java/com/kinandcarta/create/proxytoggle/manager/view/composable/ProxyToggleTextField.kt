@@ -3,7 +3,9 @@
 package com.kinandcarta.create.proxytoggle.manager.view.composable
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -23,6 +25,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -42,7 +45,8 @@ fun ProxyToggleTextField(
     onTextChanged: (String) -> Unit,
     enabled: Boolean,
     keyboardOptions: KeyboardOptions,
-    onForceFocusExecuted: () -> Unit
+    onForceFocusExecuted: () -> Unit,
+    trailingContent: (@Composable () -> Unit)? = null
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -64,14 +68,21 @@ fun ProxyToggleTextField(
                 .shiftFocusToNextOnTabModifier(focusManager),
             textStyle = InputTextStyle,
             label = { Text(label) },
-            trailingIcon = state.error?.let {
+            trailingIcon = if (state.error != null || trailingContent != null) {
                 {
-                    Icon(
-                        imageVector = Icons.Filled.Error,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        trailingContent?.invoke()
+                        state.error?.let {
+                            Icon(
+                                imageVector = Icons.Filled.Error,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
+            } else {
+                null
             },
             supportingText = {
                 Text(
@@ -132,7 +143,8 @@ private fun ProxyToggleTextFieldPreviewContent(
                 onTextChanged = {},
                 enabled = enabled,
                 keyboardOptions = KeyboardOptions.Default,
-                onForceFocusExecuted = {}
+                onForceFocusExecuted = {},
+                trailingContent = null
             )
         }
     }

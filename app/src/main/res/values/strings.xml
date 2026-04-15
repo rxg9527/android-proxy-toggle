@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="proxy_notification_channel_name">Proxy status</string>
+    <string name="proxy_notification_channel_description">Persistent reminder while the global proxy is enabled.</string>
+    <string name="proxy_notification_title">Proxy enabled</string>
+    <string name="proxy_notification_message">Current proxy: %1$s</string>
+    <string name="proxy_notification_disable_action">Disable proxy</string>
+</resources>

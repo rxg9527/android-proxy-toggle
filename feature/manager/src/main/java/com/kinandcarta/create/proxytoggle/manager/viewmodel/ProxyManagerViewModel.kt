@@ -71,7 +71,7 @@ class ProxyManagerViewModel @Inject constructor(
             UserInteraction.SwitchThemeClicked -> toggleTheme()
             is UserInteraction.AddressChanged -> onAddressChanged(userInteraction.newAddress)
             is UserInteraction.PortChanged -> onPortChanged(userInteraction.newPort)
-            is UserInteraction.ProxyFromDropDownSelected -> onProxySelected(userInteraction.proxy)
+            is UserInteraction.RecentAddressSelected -> onRecentAddressSelected(userInteraction.address)
         }
     }
 
@@ -114,11 +114,11 @@ class ProxyManagerViewModel @Inject constructor(
         }
     }
 
-    private fun onProxySelected(proxy: Proxy) {
+    private fun onRecentAddressSelected(address: String) {
         updateDisconnectedState {
             UiState.Disconnected(
-                addressState = TextFieldState(text = proxy.address),
-                portState = TextFieldState(text = proxy.port),
+                addressState = TextFieldState(text = address),
+                portState = it.portState,
                 pastProxies = it.pastProxies
             )
         }
@@ -224,7 +224,7 @@ class ProxyManagerViewModel @Inject constructor(
         object SwitchThemeClicked : UserInteraction()
         data class AddressChanged(val newAddress: String) : UserInteraction()
         data class PortChanged(val newPort: String) : UserInteraction()
-        data class ProxyFromDropDownSelected(val proxy: Proxy) : UserInteraction()
+        data class RecentAddressSelected(val address: String) : UserInteraction()
     }
 
     private sealed class ProxyManagerError {

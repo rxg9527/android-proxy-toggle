@@ -258,6 +258,26 @@ class ProxyManagerViewModelTest {
     }
 
     @Test
+    fun `onUserInteraction(RecentAddressSelected) - WHEN address selected THEN update address and keep port`() {
+        // GIVEN
+        givenDisconnectedWith(address = "", port = PROXY_PORT)
+
+        // WHEN
+        subject.onUserInteraction(
+            ProxyManagerViewModel.UserInteraction.RecentAddressSelected(PROXY_ADDRESS)
+        )
+
+        // THEN
+        assertThat(subject.uiState.value).isEqualTo(
+            ProxyManagerViewModel.UiState.Disconnected(
+                addressState = ProxyManagerViewModel.TextFieldState(text = PROXY_ADDRESS),
+                portState = ProxyManagerViewModel.TextFieldState(text = PROXY_PORT),
+                pastProxies = emptyList()
+            )
+        )
+    }
+
+    @Test
     fun `onUserInteraction(AddressChanged) - simple filter, only digits and dots`() {
         // WHEN
         val userTyped = "125j0h111rvhiz89@$)(!V."

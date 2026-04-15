@@ -10,6 +10,8 @@
         android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".App"
         android:allowBackup="true"
@@ -32,6 +34,11 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".notification.ProxyNotificationActionReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>

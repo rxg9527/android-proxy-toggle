@@ -19,7 +19,7 @@
     <string name="switch_theme">Switch theme</string>
     <string name="enable_proxy">Enable proxy</string>
     <string name="disable_proxy">Disable proxy</string>
-    <string name="past_proxies_dropdown">Past proxies dropdown</string>
+    <string name="recent_ip_addresses_dropdown">Recent IP addresses</string>
     <string name="settings">Open app settings</string>
     <string name="toggle_proxy">Toggle proxy</string>
 </resources>
