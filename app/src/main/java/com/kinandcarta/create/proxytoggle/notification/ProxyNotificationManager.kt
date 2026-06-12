@@ -60,11 +60,12 @@ class ProxyNotificationManager @Inject constructor(
     }
 
     private fun hasNotificationPermission(): Boolean {
+        val notificationPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        )
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            notificationPermission == PackageManager.PERMISSION_GRANTED
     }
 
     private fun createNotificationChannelIfNeeded() {

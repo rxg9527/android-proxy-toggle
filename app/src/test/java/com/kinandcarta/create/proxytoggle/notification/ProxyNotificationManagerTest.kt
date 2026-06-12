@@ -45,7 +45,7 @@ class ProxyNotificationManagerTest {
         assertThat(notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
             .isEqualTo("Proxy enabled")
         assertThat(notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
-            .isEqualTo("Current proxy: ${PROXY}")
+            .isEqualTo("Current proxy: $PROXY")
         assertThat(notification.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
         assertThat(notification.actions.single().title.toString()).isEqualTo("Disable proxy")
     }
