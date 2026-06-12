@@ -25,10 +25,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import com.kinandcarta.create.proxytoggle.core.ui.theme.InputTextStyle
 import com.kinandcarta.create.proxytoggle.core.ui.theme.ProxyToggleTheme
@@ -46,9 +46,13 @@ fun ProxyToggleTextField(
     enabled: Boolean,
     keyboardOptions: KeyboardOptions,
     onForceFocusExecuted: () -> Unit,
-    trailingContent: (@Composable () -> Unit)? = null
+    trailingContent: (@Composable () -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
+    val error = state.error
+    val errorText = error?.let { stringResource(it) } ?: ""
+    val hasError = error != null
 
     val focusRequester = remember { FocusRequester() }
     if (state.forceFocus) {
@@ -63,16 +67,16 @@ fun ProxyToggleTextField(
             value = state.text,
             onValueChange = onTextChanged,
             enabled = enabled,
-            modifier = Modifier
+            modifier = modifier
                 .focusRequester(focusRequester)
                 .shiftFocusToNextOnTabModifier(focusManager),
             textStyle = InputTextStyle,
             label = { Text(label) },
-            trailingIcon = if (state.error != null || trailingContent != null) {
+            trailingIcon = if (hasError || trailingContent != null) {
                 {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         trailingContent?.invoke()
-                        state.error?.let {
+                        if (hasError) {
                             Icon(
                                 imageVector = Icons.Filled.Error,
                                 contentDescription = null,
@@ -86,13 +90,13 @@ fun ProxyToggleTextField(
             },
             supportingText = {
                 Text(
-                    text = state.error?.let { stringResource(it) } ?: "",
+                    text = errorText,
                     style = MaterialTheme.typography.labelSmall.copy(
                         color = MaterialTheme.colorScheme.error
                     )
                 )
             },
-            isError = state.error != null,
+            isError = hasError,
             keyboardOptions = keyboardOptions,
             keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
             singleLine = true

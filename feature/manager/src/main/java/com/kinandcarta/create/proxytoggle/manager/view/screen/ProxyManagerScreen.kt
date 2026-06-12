@@ -1,8 +1,13 @@
-@file:Suppress("TooManyFunctions")
+@file:Suppress("LongParameterList", "TooManyFunctions")
 
 package com.kinandcarta.create.proxytoggle.manager.view.screen
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +28,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
@@ -41,6 +48,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kinandcarta.create.proxytoggle.core.common.proxy.Proxy
 import com.kinandcarta.create.proxytoggle.core.ui.theme.BluishGrey
@@ -54,8 +62,10 @@ import com.kinandcarta.create.proxytoggle.manager.view.composable.ProxyToggleBut
 import com.kinandcarta.create.proxytoggle.manager.view.composable.ProxyToggleIcon
 import com.kinandcarta.create.proxytoggle.manager.view.composable.ProxyToggleTextField
 import com.kinandcarta.create.proxytoggle.manager.viewmodel.ProxyManagerViewModel
+import com.kinandcarta.create.proxytoggle.manager.viewmodel.ProxyManagerViewModel.NetworkScopeUiState
 import com.kinandcarta.create.proxytoggle.manager.viewmodel.ProxyManagerViewModel.UiState
 import com.kinandcarta.create.proxytoggle.manager.viewmodel.ProxyManagerViewModel.UserInteraction
+import com.kinandcarta.create.proxytoggle.repository.userprefs.ProxyScope
 
 @Composable
 fun ProxyManagerScreen(
@@ -63,12 +73,29 @@ fun ProxyManagerScreen(
     useVerticalLayout: Boolean
 ) {
     val uiState by viewModel.uiState
+    val networkScopeState by viewModel.networkScopeState
+    val context = LocalContext.current
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.onUserInteraction(UserInteraction.LocationPermissionResult)
+    }
 
     ProxyManagerScreenContent(
         useVerticalLayout = useVerticalLayout,
         uiState = uiState,
+        networkScopeState = networkScopeState,
         onUserInteraction = viewModel::onUserInteraction,
-        onForceFocusExecuted = viewModel::onForceFocusExecuted
+        onForceFocusExecuted = viewModel::onForceFocusExecuted,
+        onRequestLocationPermission = {
+            val permissionGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            if (permissionGranted.not()) {
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
     )
 }
 
@@ -76,8 +103,10 @@ fun ProxyManagerScreen(
 fun ProxyManagerScreenContent(
     useVerticalLayout: Boolean,
     uiState: UiState,
+    networkScopeState: NetworkScopeUiState,
     onUserInteraction: (UserInteraction) -> Unit,
-    onForceFocusExecuted: () -> Unit
+    onForceFocusExecuted: () -> Unit,
+    onRequestLocationPermission: () -> Unit
 ) {
     @OptIn(ExperimentalComposeUiApi::class)
     if (uiState is UiState.Connected) {
@@ -107,8 +136,10 @@ fun ProxyManagerScreenContent(
                 textFields = {
                     TextFields(
                         uiState,
+                        networkScopeState,
                         onUserInteraction,
-                        onForceFocusExecuted
+                        onForceFocusExecuted,
+                        onRequestLocationPermission
                     )
                 }
             )
@@ -247,8 +278,10 @@ private fun RecentAddressesDropdown(
 @Composable
 private fun TextFields(
     uiState: UiState,
+    networkScopeState: NetworkScopeUiState,
     onUserInteraction: (UserInteraction) -> Unit,
-    onForceFocusExecuted: () -> Unit
+    onForceFocusExecuted: () -> Unit,
+    onRequestLocationPermission: () -> Unit
 ) {
     val recentAddresses = (uiState as? UiState.Disconnected)
         ?.pastProxies
@@ -286,6 +319,100 @@ private fun TextFields(
         onForceFocusExecuted = onForceFocusExecuted,
         trailingContent = null
     )
+    Spacer(Modifier.height(dimensionResource(R.dimen.default_margin)))
+    NetworkScopeFields(
+        networkScopeState = networkScopeState,
+        controlsEnabled = uiState is UiState.Disconnected,
+        onUserInteraction = onUserInteraction,
+        onRequestLocationPermission = onRequestLocationPermission
+    )
+}
+
+@Composable
+private fun NetworkScopeFields(
+    networkScopeState: NetworkScopeUiState,
+    controlsEnabled: Boolean,
+    onUserInteraction: (UserInteraction) -> Unit,
+    onRequestLocationPermission: () -> Unit
+) {
+    Text(
+        text = stringResource(R.string.proxy_scope_title),
+        color = BluishGrey,
+        style = MaterialTheme.typography.bodyMedium
+    )
+    ProxyScopeOption(
+        label = stringResource(R.string.proxy_scope_all_networks),
+        selected = networkScopeState.proxyScope == ProxyScope.ALL_NETWORKS,
+        enabled = controlsEnabled,
+        onClick = { onUserInteraction(UserInteraction.ProxyScopeSelected(ProxyScope.ALL_NETWORKS)) }
+    )
+    ProxyScopeOption(
+        label = stringResource(R.string.proxy_scope_wifi_only),
+        selected = networkScopeState.proxyScope == ProxyScope.WIFI_ONLY,
+        enabled = controlsEnabled,
+        onClick = { onUserInteraction(UserInteraction.ProxyScopeSelected(ProxyScope.WIFI_ONLY)) }
+    )
+    ProxyScopeOption(
+        label = stringResource(R.string.proxy_scope_specific_ssid),
+        selected = networkScopeState.proxyScope == ProxyScope.SPECIFIC_SSID,
+        enabled = controlsEnabled,
+        onClick = {
+            onUserInteraction(UserInteraction.ProxyScopeSelected(ProxyScope.SPECIFIC_SSID))
+            onRequestLocationPermission()
+        }
+    )
+    if (networkScopeState.proxyScope == ProxyScope.SPECIFIC_SSID) {
+        Spacer(Modifier.height(dimensionResource(R.dimen.default_margin)))
+        ProxyToggleTextField(
+            label = stringResource(R.string.proxy_scope_ssid_hint),
+            state = ProxyManagerViewModel.TextFieldState(text = networkScopeState.ssid),
+            onTextChanged = {
+                onUserInteraction(UserInteraction.ProxyNetworkSsidChanged(it))
+            },
+            enabled = controlsEnabled,
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            onForceFocusExecuted = {},
+            trailingContent = null,
+            modifier = Modifier.testTag(TestTags.PROXY_SCOPE_SPECIFIC_SSID_FIELD)
+        )
+    }
+    networkScopeState.statusMessage?.let {
+        Spacer(Modifier.height(dimensionResource(R.dimen.textfield_error_padding)))
+        Text(
+            text = stringResource(it),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+private fun ProxyScopeOption(
+    label: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                enabled = enabled,
+                onClick = onClick
+            )
+    ) {
+        RadioButton(
+            selected = selected,
+            enabled = enabled,
+            onClick = onClick
+        )
+        Text(
+            text = label,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else BluishGrey,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
 }
 
 private fun getNumKeyboardOptions(imeAction: ImeAction): KeyboardOptions {
@@ -419,8 +546,10 @@ private fun ProxyManagerScreenForPreview(
                     pastProxies = pastProxies
                 )
             },
+            networkScopeState = NetworkScopeUiState(ssid = "58group"),
             onUserInteraction = {},
-            onForceFocusExecuted = {}
+            onForceFocusExecuted = {},
+            onRequestLocationPermission = {}
         )
     }
 }

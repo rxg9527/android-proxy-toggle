@@ -3,7 +3,6 @@ package com.kinandcarta.create.proxytoggle.manager.view.screen
 import android.os.Build
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -17,6 +16,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.kinandcarta.create.proxytoggle.core.common.proxy.Proxy
 import com.kinandcarta.create.proxytoggle.manager.viewmodel.ProxyManagerViewModel
+import com.kinandcarta.create.proxytoggle.repository.userprefs.ProxyScope
 import io.mockk.MockKAnnotations
 import io.mockk.Runs
 import io.mockk.every
@@ -46,12 +46,16 @@ class ProxyManagerScreenTest {
             pastProxies = emptyList()
         )
     )
+    private var testNetworkScopeState = mutableStateOf(
+        ProxyManagerViewModel.NetworkScopeUiState(ssid = "58group")
+    )
 
     @Before
     fun setUp() {
         MockKAnnotations.init(this)
 
         every { mockViewModel.uiState } answers { testState }
+        every { mockViewModel.networkScopeState } answers { testNetworkScopeState }
         every { mockViewModel.onUserInteraction(any()) } just Runs
         every { mockViewModel.onForceFocusExecuted() } just Runs
     }
@@ -174,13 +178,43 @@ class ProxyManagerScreenTest {
             .performClick()
 
         pastProxies.map { it.address }.forEach {
-            composeRule.onNodeWithText(it)
-                .assertDoesNotExist()
+            composeRule.onAllNodesWithText(it)
+                .assertCountEquals(0)
         }
 
         verify {
             mockViewModel.onUserInteraction(
                 ProxyManagerViewModel.UserInteraction.RecentAddressSelected(proxyToSelect.address)
+            )
+        }
+    }
+
+    @Test
+    fun `specific ssid - WHEN selected THEN viewModel gets ProxyScopeSelected`() {
+        launchComposable()
+
+        composeRule.onNodeWithText("Specific SSID")
+            .performScrollTo()
+            .performClick()
+
+        verify {
+            mockViewModel.onUserInteraction(
+                ProxyManagerViewModel.UserInteraction.ProxyScopeSelected(ProxyScope.SPECIFIC_SSID)
+            )
+        }
+    }
+
+    @Test
+    fun `specific ssid text - WHEN changed THEN viewModel gets ProxyNetworkSsidChanged`() {
+        launchComposable(proxyScope = ProxyScope.SPECIFIC_SSID, ssid = "58group")
+
+        composeRule.onNodeWithText("58group")
+            .performScrollTo()
+            .performTextInput("-office")
+
+        verify {
+            mockViewModel.onUserInteraction(
+                ProxyManagerViewModel.UserInteraction.ProxyNetworkSsidChanged("58group-office")
             )
         }
     }
@@ -192,7 +226,9 @@ class ProxyManagerScreenTest {
         port: String = "",
         forceFocusAddress: Boolean = false,
         forceFocusPort: Boolean = false,
-        pastProxies: List<Proxy> = emptyList()
+        pastProxies: List<Proxy> = emptyList(),
+        proxyScope: ProxyScope = ProxyScope.ALL_NETWORKS,
+        ssid: String = "58group"
     ) {
         givenUiState(
             proxyEnabled = proxyEnabled,
@@ -200,7 +236,9 @@ class ProxyManagerScreenTest {
             port = port,
             forceFocusAddress = forceFocusAddress,
             forceFocusPort = forceFocusPort,
-            pastProxies = pastProxies
+            pastProxies = pastProxies,
+            proxyScope = proxyScope,
+            ssid = ssid
         )
 
         composeRule.setContent {
@@ -218,7 +256,9 @@ class ProxyManagerScreenTest {
         port: String = "",
         forceFocusAddress: Boolean = false,
         forceFocusPort: Boolean = false,
-        pastProxies: List<Proxy> = emptyList()
+        pastProxies: List<Proxy> = emptyList(),
+        proxyScope: ProxyScope = ProxyScope.ALL_NETWORKS,
+        ssid: String = "58group"
     ) {
         val addressState = ProxyManagerViewModel.TextFieldState(
             text = address,
@@ -238,5 +278,9 @@ class ProxyManagerScreenTest {
                 pastProxies = pastProxies
             )
         }
+        testNetworkScopeState.value = ProxyManagerViewModel.NetworkScopeUiState(
+            proxyScope = proxyScope,
+            ssid = ssid
+        )
     }
 }

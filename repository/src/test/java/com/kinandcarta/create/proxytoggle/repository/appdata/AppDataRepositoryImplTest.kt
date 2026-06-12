@@ -112,6 +112,33 @@ class AppDataRepositoryImplTest {
         }
     }
 
+    @Test
+    fun `desiredProxy - default is disabled`() = runTest {
+        subject.desiredProxy.test {
+            assertThat(awaitItem()).isEqualTo(Proxy.Disabled)
+        }
+    }
+
+    @Test
+    fun `desiredProxy - WHEN saveDesiredProxy THEN emits saved proxy`() = runTest {
+        val proxy = testProxies.first().toProxy()
+        subject.desiredProxy.test {
+            subject.saveDesiredProxy(proxy)
+            assertThat(expectMostRecentItem()).isEqualTo(proxy)
+        }
+    }
+
+    @Test
+    fun `desiredProxy - WHEN clearDesiredProxy THEN emits disabled`() = runTest {
+        val proxy = testProxies.first().toProxy()
+        subject.desiredProxy.test {
+            subject.saveDesiredProxy(proxy)
+            expectMostRecentItem()
+            subject.clearDesiredProxy()
+            assertThat(expectMostRecentItem()).isEqualTo(Proxy.Disabled)
+        }
+    }
+
     private fun appDataWithProxies(proxies: List<PastProxy>): AppData {
         return AppData.newBuilder()
             .addAllPastProxies(proxies.toMutableList())

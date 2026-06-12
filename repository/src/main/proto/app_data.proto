@@ -9,6 +9,12 @@ message PastProxy {
   sint64 timestamp = 3;
 }
 
+message DesiredProxy {
+  string address = 1;
+  string port = 2;
+}
+
 message AppData {
   repeated PastProxy past_proxies = 2;
+  DesiredProxy desired_proxy = 3;
 }

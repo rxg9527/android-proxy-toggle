@@ -12,6 +12,7 @@ import com.kinandcarta.create.proxytoggle.repository.proxymapper.ProxyMapper
 private const val SHARED_PREF_NAME = "AppSettings"
 private const val PREF_PROXY = "proxy"
 private const val PREF_THEME = "theme"
+private const val DEFAULT_PROXY_NETWORK_SSID = "58group"
 
 fun appDataMigration(context: Context, proxyMapper: ProxyMapper) = SharedPreferencesMigration(
     context = context,
@@ -55,6 +56,13 @@ fun userPreferencesMigration(context: Context) = SharedPreferencesMigration(
         } else {
             builder.themeMode = UserPreferences.ThemeMode.LIGHT
         }
+    }
+    if (currentData.proxyNetworkScope == UserPreferences.ProxyNetworkScope.PROXY_NETWORK_SCOPE_UNSPECIFIED) {
+        builder.proxyNetworkScope = UserPreferences.ProxyNetworkScope.ALL_NETWORKS
+    }
+    if (currentData.proxyNetworkSsidSet.not()) {
+        builder.proxyNetworkSsid = DEFAULT_PROXY_NETWORK_SSID
+        builder.proxyNetworkSsidSet = true
     }
     builder.build()
 }

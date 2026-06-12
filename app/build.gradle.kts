@@ -12,7 +12,7 @@ android {
     defaultConfig {
         applicationId = "com.kinandcarta.create.proxytoggle"
 
-        versionName = "1.2.0"
+        versionName = "1.3.0"
         versionCode = common.versionCode(versionName)
     }
 

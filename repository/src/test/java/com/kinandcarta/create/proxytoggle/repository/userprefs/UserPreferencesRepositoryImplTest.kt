@@ -106,6 +106,36 @@ class UserPreferencesRepositoryImplTest {
         }
     }
 
+    @Test
+    fun `proxyScope - default is all networks`() = runTest {
+        subject.proxyScope.test {
+            assertThat(awaitItem()).isEqualTo(ProxyScope.ALL_NETWORKS)
+        }
+    }
+
+    @Test
+    fun `proxyScope - WHEN setProxyScope THEN emits selected scope`() = runTest {
+        subject.proxyScope.test {
+            subject.setProxyScope(ProxyScope.SPECIFIC_SSID)
+            assertThat(expectMostRecentItem()).isEqualTo(ProxyScope.SPECIFIC_SSID)
+        }
+    }
+
+    @Test
+    fun `proxyNetworkSsid - default is 58group`() = runTest {
+        subject.proxyNetworkSsid.test {
+            assertThat(awaitItem()).isEqualTo("58group")
+        }
+    }
+
+    @Test
+    fun `proxyNetworkSsid - WHEN setProxyNetworkSsid THEN emits selected ssid`() = runTest {
+        subject.proxyNetworkSsid.test {
+            subject.setProxyNetworkSsid("office")
+            assertThat(expectMostRecentItem()).isEqualTo("office")
+        }
+    }
+
     private fun userPrefsWithTheme(themeMode: UserPreferences.ThemeMode): UserPreferences {
         return UserPreferences.newBuilder()
             .setThemeMode(themeMode)

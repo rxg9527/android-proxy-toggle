@@ -22,4 +22,11 @@
     <string name="recent_ip_addresses_dropdown">Recent IP addresses</string>
     <string name="settings">Open app settings</string>
     <string name="toggle_proxy">Toggle proxy</string>
+    <string name="proxy_scope_title">Network scope</string>
+    <string name="proxy_scope_all_networks">All networks</string>
+    <string name="proxy_scope_wifi_only">WiFi only</string>
+    <string name="proxy_scope_specific_ssid">Specific SSID</string>
+    <string name="proxy_scope_ssid_hint">SSID</string>
+    <string name="proxy_scope_network_not_matched">Proxy is configured but the current network does not match.</string>
+    <string name="proxy_scope_location_permission_required">Location permission is required to read the current WiFi SSID.</string>
 </resources>

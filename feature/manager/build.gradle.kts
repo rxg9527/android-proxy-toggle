@@ -25,6 +25,7 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.material3)
+    implementation(libs.activity.compose)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.constraintlayout.compose)
 
@@ -40,6 +41,7 @@ dependencies {
     testImplementation(libs.core.testing)
     testImplementation(libs.compose.ui.test)
     testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.compose.ui.test.manifest)
     testImplementation(libs.test.ext.junit)
     testImplementation(libs.showkase.processor)
     testImplementation(libs.test.parameter.injector)

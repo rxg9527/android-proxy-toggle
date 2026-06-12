@@ -3,6 +3,7 @@ package com.kinandcarta.create.proxytoggle.repository.appdata
 import androidx.datastore.core.DataStore
 import com.kinandcarta.create.proxytoggle.core.common.proxy.Proxy
 import com.kinandcarta.create.proxytoggle.datastore.AppData
+import com.kinandcarta.create.proxytoggle.datastore.DesiredProxy
 import com.kinandcarta.create.proxytoggle.datastore.PastProxy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -26,6 +27,16 @@ class AppDataRepositoryImpl @Inject constructor(
         }.distinctUntilChanged()
     }
 
+    override val desiredProxy: Flow<Proxy> by lazy {
+        appData.map { appData ->
+            if (appData.hasDesiredProxy()) {
+                Proxy(appData.desiredProxy.address, appData.desiredProxy.port)
+            } else {
+                Proxy.Disabled
+            }
+        }.distinctUntilChanged()
+    }
+
     override suspend fun saveProxy(proxy: Proxy) {
         dataStore.updateData { appData ->
             val proxiesToKeep = appData.pastProxiesList.filter {
@@ -38,6 +49,25 @@ class AppDataRepositoryImpl @Inject constructor(
                 .build()
             proxiesToKeep.add(0, proxyToAdd)
             appData.toBuilder().clearPastProxies().addAllPastProxies(proxiesToKeep).build()
+        }
+    }
+
+    override suspend fun saveDesiredProxy(proxy: Proxy) {
+        dataStore.updateData { appData ->
+            appData.toBuilder()
+                .setDesiredProxy(
+                    DesiredProxy.newBuilder()
+                        .setAddress(proxy.address)
+                        .setPort(proxy.port)
+                        .build()
+                )
+                .build()
+        }
+    }
+
+    override suspend fun clearDesiredProxy() {
+        dataStore.updateData { appData ->
+            appData.toBuilder().clearDesiredProxy().build()
         }
     }
 

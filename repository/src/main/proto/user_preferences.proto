@@ -5,11 +5,21 @@ option java_multiple_files = true;
 
 message UserPreferences {
   ThemeMode theme_mode = 1;
+  ProxyNetworkScope proxy_network_scope = 2;
+  string proxy_network_ssid = 3;
+  bool proxy_network_ssid_set = 4;
 
   enum ThemeMode {
     UNSPECIFIED = 0;
     LIGHT = 1;
     DARK = 2;
     SYSTEM = 3;
+  }
+
+  enum ProxyNetworkScope {
+    PROXY_NETWORK_SCOPE_UNSPECIFIED = 0;
+    ALL_NETWORKS = 1;
+    WIFI_ONLY = 2;
+    SPECIFIC_SSID = 3;
   }
 }

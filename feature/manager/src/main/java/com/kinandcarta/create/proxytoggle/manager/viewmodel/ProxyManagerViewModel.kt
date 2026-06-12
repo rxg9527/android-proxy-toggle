@@ -12,6 +12,8 @@ import com.kinandcarta.create.proxytoggle.core.common.proxy.ProxyValidator
 import com.kinandcarta.create.proxytoggle.manager.R
 import com.kinandcarta.create.proxytoggle.repository.appdata.AppDataRepository
 import com.kinandcarta.create.proxytoggle.repository.devicesettings.DeviceSettingsManager
+import com.kinandcarta.create.proxytoggle.repository.devicesettings.ProxyNetworkStatus
+import com.kinandcarta.create.proxytoggle.repository.userprefs.ProxyScope
 import com.kinandcarta.create.proxytoggle.repository.userprefs.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -36,6 +38,9 @@ class ProxyManagerViewModel @Inject constructor(
         )
     )
     val uiState: State<UiState> = _uiState
+
+    private var _networkScopeState = mutableStateOf(NetworkScopeUiState())
+    val networkScopeState: State<NetworkScopeUiState> = _networkScopeState
 
     init {
         viewModelScope.launch {
@@ -63,6 +68,22 @@ class ProxyManagerViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            combine(
+                userPreferencesRepository.proxyScope,
+                userPreferencesRepository.proxyNetworkSsid,
+                deviceSettingsManager.proxyNetworkStatus
+            ) { proxyScope, proxyNetworkSsid, proxyNetworkStatus ->
+                NetworkScopeUiState(
+                    proxyScope = proxyScope,
+                    ssid = proxyNetworkSsid,
+                    statusMessage = proxyNetworkStatus.toStatusMessage(),
+                    requiresLocationPermission = proxyNetworkStatus.requiresLocationPermission
+                )
+            }.collect {
+                _networkScopeState.value = it
+            }
+        }
     }
 
     fun onUserInteraction(userInteraction: UserInteraction) {
@@ -72,6 +93,11 @@ class ProxyManagerViewModel @Inject constructor(
             is UserInteraction.AddressChanged -> onAddressChanged(userInteraction.newAddress)
             is UserInteraction.PortChanged -> onPortChanged(userInteraction.newPort)
             is UserInteraction.RecentAddressSelected -> onRecentAddressSelected(userInteraction.address)
+            is UserInteraction.ProxyScopeSelected -> onProxyScopeSelected(userInteraction.proxyScope)
+            is UserInteraction.ProxyNetworkSsidChanged -> {
+                onProxyNetworkSsidChanged(userInteraction.ssid)
+            }
+            UserInteraction.LocationPermissionResult -> deviceSettingsManager.refreshProxy()
         }
     }
 
@@ -95,6 +121,20 @@ class ProxyManagerViewModel @Inject constructor(
     private fun toggleTheme() {
         viewModelScope.launch {
             userPreferencesRepository.toggleTheme()
+        }
+    }
+
+    private fun onProxyScopeSelected(proxyScope: ProxyScope) {
+        viewModelScope.launch {
+            userPreferencesRepository.setProxyScope(proxyScope)
+            deviceSettingsManager.refreshProxy()
+        }
+    }
+
+    private fun onProxyNetworkSsidChanged(ssid: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.setProxyNetworkSsid(ssid)
+            deviceSettingsManager.refreshProxy()
         }
     }
 
@@ -219,12 +259,22 @@ class ProxyManagerViewModel @Inject constructor(
         val forceFocus: Boolean = false
     )
 
+    data class NetworkScopeUiState(
+        val proxyScope: ProxyScope = ProxyScope.ALL_NETWORKS,
+        val ssid: String = "",
+        @StringRes val statusMessage: Int? = null,
+        val requiresLocationPermission: Boolean = false
+    )
+
     sealed class UserInteraction {
         object ToggleProxyClicked : UserInteraction()
         object SwitchThemeClicked : UserInteraction()
+        object LocationPermissionResult : UserInteraction()
         data class AddressChanged(val newAddress: String) : UserInteraction()
         data class PortChanged(val newPort: String) : UserInteraction()
         data class RecentAddressSelected(val address: String) : UserInteraction()
+        data class ProxyScopeSelected(val proxyScope: ProxyScope) : UserInteraction()
+        data class ProxyNetworkSsidChanged(val ssid: String) : UserInteraction()
     }
 
     private sealed class ProxyManagerError {
@@ -236,5 +286,14 @@ class ProxyManagerViewModel @Inject constructor(
     companion object {
         // NOTE: necessary delay to refocus & announce existing error on next attempt to connect!
         private const val ERROR_DELAY = 50L
+    }
+}
+
+private fun ProxyNetworkStatus.toStatusMessage(): Int? {
+    return when {
+        hasDesiredProxy.not() -> null
+        requiresLocationPermission -> R.string.proxy_scope_location_permission_required
+        isNetworkMatched.not() -> R.string.proxy_scope_network_not_matched
+        else -> null
     }
 }

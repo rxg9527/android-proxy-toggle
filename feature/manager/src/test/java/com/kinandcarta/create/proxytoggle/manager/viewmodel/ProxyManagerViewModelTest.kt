@@ -8,6 +8,8 @@ import com.kinandcarta.create.proxytoggle.core.common.stub.Stubs.PROXY_PORT
 import com.kinandcarta.create.proxytoggle.manager.R
 import com.kinandcarta.create.proxytoggle.repository.appdata.AppDataRepository
 import com.kinandcarta.create.proxytoggle.repository.devicesettings.DeviceSettingsManager
+import com.kinandcarta.create.proxytoggle.repository.devicesettings.ProxyNetworkStatus
+import com.kinandcarta.create.proxytoggle.repository.userprefs.ProxyScope
 import com.kinandcarta.create.proxytoggle.repository.userprefs.UserPreferencesRepository
 import io.mockk.Called
 import io.mockk.MockKAnnotations
@@ -49,6 +51,9 @@ class ProxyManagerViewModelTest {
     private lateinit var mockUserPreferencesRepository: UserPreferencesRepository
 
     private val fakeProxyStateFlow = MutableStateFlow(Proxy.Disabled)
+    private val fakeProxyNetworkStatusFlow = MutableStateFlow(ProxyNetworkStatus())
+    private val fakeProxyScopeFlow = MutableStateFlow(ProxyScope.ALL_NETWORKS)
+    private val fakeProxyNetworkSsidFlow = MutableStateFlow("58group")
 
     private lateinit var subject: ProxyManagerViewModel
 
@@ -59,9 +64,18 @@ class ProxyManagerViewModelTest {
 
         every { mockDeviceSettingsManager.proxySetting } returns fakeProxyStateFlow
         excludeRecords { mockDeviceSettingsManager.proxySetting }
+        every { mockDeviceSettingsManager.proxyNetworkStatus } returns fakeProxyNetworkStatusFlow
+        excludeRecords { mockDeviceSettingsManager.proxyNetworkStatus }
+        every { mockDeviceSettingsManager.refreshProxy() } answers {}
 
         every { mockAppDataRepository.pastProxies } returns flowOf(emptyList())
         excludeRecords { mockAppDataRepository.pastProxies }
+        every { mockUserPreferencesRepository.proxyScope } returns fakeProxyScopeFlow
+        every { mockUserPreferencesRepository.proxyNetworkSsid } returns fakeProxyNetworkSsidFlow
+        excludeRecords {
+            mockUserPreferencesRepository.proxyScope
+            mockUserPreferencesRepository.proxyNetworkSsid
+        }
 
         // Emit appropriate values on fake proxy-state-flow when enabling/disabling proxy
         val proxy = slot<Proxy>()
@@ -307,6 +321,40 @@ class ProxyManagerViewModelTest {
 
         // THEN
         coVerify { mockUserPreferencesRepository.toggleTheme() }
+    }
+
+    @Test
+    fun `initial networkScopeState - default all networks and 58group ssid`() {
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertThat(subject.networkScopeState.value).isEqualTo(
+            ProxyManagerViewModel.NetworkScopeUiState(
+                proxyScope = ProxyScope.ALL_NETWORKS,
+                ssid = "58group"
+            )
+        )
+    }
+
+    @Test
+    fun `onUserInteraction(ProxyScopeSelected) - delegate scope change and refresh proxy`() {
+        subject.onUserInteraction(
+            ProxyManagerViewModel.UserInteraction.ProxyScopeSelected(ProxyScope.SPECIFIC_SSID)
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockUserPreferencesRepository.setProxyScope(ProxyScope.SPECIFIC_SSID) }
+        verify { mockDeviceSettingsManager.refreshProxy() }
+    }
+
+    @Test
+    fun `onUserInteraction(ProxyNetworkSsidChanged) - delegate ssid change and refresh proxy`() {
+        subject.onUserInteraction(
+            ProxyManagerViewModel.UserInteraction.ProxyNetworkSsidChanged("office")
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockUserPreferencesRepository.setProxyNetworkSsid("office") }
+        verify { mockDeviceSettingsManager.refreshProxy() }
     }
 
     @Test
